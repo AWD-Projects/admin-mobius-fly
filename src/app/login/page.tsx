@@ -11,20 +11,27 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-md border border-border bg-card p-8 shadow-[var(--shadow-soft)]">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary">
-            <Image src="/logo/main-logo.svg" alt="Mobius Fly" width={24} height={24} />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold tracking-[-0.008em] text-foreground">
-              Mobius Admin
-            </h1>
-            <p className="text-sm text-muted-foreground">Panel interno de aprobación</p>
-          </div>
+      <div className="flex w-full max-w-[356px] flex-col items-center">
+        {/* main-logo.svg is #39424E: it must sit on the light background, never on a dark tile */}
+        <div className="mb-12 flex items-center gap-2">
+          <Image
+            src="/logo/main-logo.svg"
+            alt="Mobius Fly"
+            width={32}
+            height={32}
+            priority
+            className="size-8"
+          />
+          <span className="text-xl font-medium text-foreground">Mobius Fly</span>
         </div>
+        <h1 className="mb-2 text-center text-[2rem] font-bold text-foreground">
+          Panel interno
+        </h1>
+        <p className="mb-8 text-center text-sm text-muted-foreground">
+          Acceso exclusivo del equipo de Mobius Fly.
+        </p>
         {params.error === "not_admin" && (
-          <p className="mb-4 flex items-start gap-2 rounded-sm bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+          <p className="mb-4 flex w-full items-start gap-2 rounded-sm bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
             <ShieldAlert size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
             Esta cuenta no tiene acceso al panel de administración.
           </p>

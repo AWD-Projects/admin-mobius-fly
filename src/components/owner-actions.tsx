@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { UserCheck, Ban, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,17 +30,24 @@ export function OwnerActions({
     action: (id: string) => Promise<{ success?: true; error?: string }>
   ) {
     startTransition(async () => {
-      await toast.promise(
-        action(ownerId).then((result) => {
-          if (result.error) throw new Error(result.error);
-          return result;
-        }),
-        {
-          loading: LOADING_LABEL[kind],
-          success: "Cuenta actualizada.",
-          error: (err) => (err instanceof Error ? err.message : "No se pudo actualizar la cuenta."),
-        }
-      );
+      try {
+        await toast.promise(
+          action(ownerId).then((result) => {
+            if (result.error) throw new Error(result.error);
+            return result;
+          }),
+          {
+            loading: { title: LOADING_LABEL[kind] },
+            success: { title: "Cuenta actualizada" },
+            error: (err) => ({
+              title: "No se pudo actualizar la cuenta",
+              description: err instanceof Error ? err.message : undefined,
+            }),
+          }
+        );
+      } catch {
+        // toast.promise already surfaced the error.
+      }
     });
   }
 

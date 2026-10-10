@@ -1,13 +1,30 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2 } from "lucide-react";
+import { Inbox } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function EmptyState({ label }: { label: string }) {
+// Mirrors mobius-fly/components/molecules/EmptyState.tsx.
+export function EmptyState({
+  label,
+  description,
+  icon: Icon = Inbox,
+  className,
+}: {
+  label: string;
+  description?: string;
+  icon?: React.ElementType;
+  className?: string;
+}) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
-        <CheckCircle2 size={28} strokeWidth={1.5} className="text-success" />
-        <p className="text-sm text-muted-foreground">{label}</p>
-      </CardContent>
-    </Card>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-4 rounded-lg bg-muted/20 p-12",
+        className
+      )}
+    >
+      <Icon className="size-12 text-border" strokeWidth={1} />
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h3 className="text-base font-semibold text-foreground">{label}</h3>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { PlaneTakeoff, Search } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sanitizeSearch } from "@/lib/search";
 import { formatDateTime } from "@/lib/format";
 import {
   Table,
@@ -10,7 +12,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 
@@ -27,7 +31,7 @@ const FLIGHT_STATUS_LABEL: Record<string, string> = {
   REJECTED: "Rechazado",
 };
 
-async function getFlights(search: string, page: number) {
+async function getFlights(search: string, statusId: string | null, page: number) {
   const supabase = createAdminClient();
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -47,7 +51,10 @@ async function getFlights(search: string, page: number) {
     .range(from, to);
 
   if (search) {
-    query = query.or(`flight_code.ilike.%${search}%`);
+    query = query.ilike("flight_code", `%${search}%`);
+  }
+  if (statusId) {
+    query = query.eq("status_id", statusId);
   }
 
   const { data, count } = await query;
@@ -82,12 +89,20 @@ async function getFlights(search: string, page: number) {
 export default async function VuelosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const search = params.q?.trim() ?? "";
+  const search = sanitizeSearch(params.q ?? "");
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
-  const { flights, total } = await getFlights(search, page);
+
+  const { data: statuses } = await createAdminClient()
+    .from("flight_status")
+    .select("id, code, name")
+    .order("name");
+  const statusOptions = statuses ?? [];
+  const selectedStatus = statusOptions.find((status) => status.code === params.status);
+
+  const { flights, total } = await getFlights(search, selectedStatus?.id ?? null, page);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -98,19 +113,53 @@ export default async function VuelosPage({
         description="Consulta de soporte, solo lectura."
       />
 
-      <form className="relative max-w-sm">
-        <Search
-          size={15}
-          strokeWidth={2}
-          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground/70"
-        />
-        <Input
-          type="search"
-          name="q"
-          placeholder="Buscar por código de vuelo..."
-          defaultValue={search}
-          className="pl-9"
-        />
+      <form className="flex flex-wrap items-end gap-4">
+        <div className="flex w-full max-w-sm flex-col gap-1.5">
+          <label htmlFor="q" className="text-xs font-semibold text-muted-foreground">
+            Código de vuelo
+          </label>
+          <div className="relative">
+            <Search
+              size={15}
+              strokeWidth={2}
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground/70"
+            />
+            <Input
+              id="q"
+              type="search"
+              name="q"
+              placeholder="Buscar por código de vuelo..."
+              defaultValue={search}
+              className="h-9 pl-9"
+            />
+          </div>
+        </div>
+        <div className="flex w-[180px] flex-col gap-1.5">
+          <label htmlFor="status" className="text-xs font-semibold text-muted-foreground">
+            Estado
+          </label>
+          <NativeSelect
+            id="status"
+            name="status"
+            defaultValue={selectedStatus?.code ?? ""}
+            className="h-9"
+          >
+            <option value="">Todos los estados</option>
+            {statusOptions.map((status) => (
+              <option key={status.id} value={status.code}>
+                {FLIGHT_STATUS_LABEL[status.code] ?? status.name}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+        <Button type="submit" variant="secondary" size="sm">
+          Filtrar
+        </Button>
+        {(search || selectedStatus) && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/vuelos">Limpiar</Link>
+          </Button>
+        )}
       </form>
 
       <div className="overflow-x-auto rounded-md border border-border bg-card shadow-[var(--shadow-soft)]">
@@ -181,7 +230,7 @@ export default async function VuelosPage({
 
       <Pagination
         basePath="/vuelos"
-        params={{ q: search || undefined }}
+        params={{ q: search || undefined, status: selectedStatus?.code }}
         page={page}
         totalPages={totalPages}
         totalItems={total}

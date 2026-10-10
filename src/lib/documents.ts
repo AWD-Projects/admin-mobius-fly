@@ -29,11 +29,14 @@ export async function approveDocument(
 
   const approvedId = await getCatalogId("document_status", "APPROVED");
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from(table)
     .update({ document_status_id: approvedId, rejected_reason: null })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("document_status_id", doc.document_status_id)
+    .select("id");
   if (updateError) return { error: "No se pudo aprobar el documento." };
+  if (!updated?.length) return { error: "El documento ya fue resuelto por otro administrador." };
 
   return { success: true };
 }
@@ -65,11 +68,14 @@ export async function rejectDocument(
 
   const rejectedId = await getCatalogId("document_status", "REJECTED");
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from(table)
-    .update({ document_status_id: rejectedId, rejected_reason: reason })
-    .eq("id", id);
+    .update({ document_status_id: rejectedId, rejected_reason: reason.trim() })
+    .eq("id", id)
+    .eq("document_status_id", doc.document_status_id)
+    .select("id");
   if (updateError) return { error: "No se pudo rechazar el documento." };
+  if (!updated?.length) return { error: "El documento ya fue resuelto por otro administrador." };
 
   return { success: true };
 }

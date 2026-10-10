@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
 import { approveDocument, rejectDocument } from "@/lib/documents";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -31,6 +32,8 @@ async function activateOwnerAccountForDocument(userDocumentId: string) {
 }
 
 export async function approveOwnerDocument(id: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
   const result = await approveDocument("user_documents", id);
   if (result.error) return result;
 
@@ -43,6 +46,8 @@ export async function approveOwnerDocument(id: string) {
 }
 
 export async function rejectOwnerDocument(id: string, reason: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
   const result = await rejectDocument("user_documents", id, reason);
   if (!result.error) {
     revalidatePath("/aprobaciones/documentos-owners");

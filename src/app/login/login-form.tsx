@@ -43,7 +43,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full flex-col gap-6">
         <FormField
           control={form.control}
           name="email"
@@ -103,13 +103,14 @@ export function LoginForm() {
         )}
         <Button
           type="submit"
+          variant="secondary"
           size="lg"
           disabled={isPending}
           isLoading={isPending}
-          className="mt-2"
+          className="mt-2 w-full"
         >
           {!isPending && <LogIn size={16} strokeWidth={2} />}
-          {isPending ? "Ingresando…" : "Ingresar"}
+          {isPending ? "Ingresando…" : "Iniciar sesión"}
         </Button>
       </form>
     </Form>

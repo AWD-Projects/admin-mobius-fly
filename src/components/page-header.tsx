@@ -13,7 +13,7 @@ export function PageHeader({
         <Icon size={22} strokeWidth={1.75} />
       </div>
       <div>
-        <h1 className="text-foreground">{title}</h1>
+        <h1 className="text-[26px] leading-tight font-semibold text-foreground">{title}</h1>
         <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
       </div>
     </div>
