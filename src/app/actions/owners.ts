@@ -1,74 +1,58 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type ActionResult = { success?: true; error?: string };
+type OwnerStatus = "PENDING_ONBOARDING" | "ACTIVE" | "SUSPENDED";
 
-async function getOwnerStatus(ownerId: string) {
+/**
+ * Moves an owner between states. The UPDATE is conditioned on the expected
+ * current status, so skipping a state (RN03) or double-activating is rejected
+ * even under concurrent requests.
+ */
+async function transitionOwner(
+  ownerId: string,
+  from: OwnerStatus,
+  to: OwnerStatus,
+  messages: { invalid: string; failed: string }
+): Promise<ActionResult> {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("owners")
-    .select("id, status")
+    .update({ status: to })
     .eq("id", ownerId)
-    .single();
-  if (error || !data) return { error: "Owner no encontrado." } as const;
-  return { status: data.status } as const;
+    .eq("status", from)
+    .select("id");
+  if (error) return { error: messages.failed };
+  if (!data?.length) return { error: messages.invalid };
+
+  revalidatePath("/owners");
+  revalidatePath("/");
+  return { success: true };
 }
 
 export async function activateOwnerAccount(ownerId: string): Promise<ActionResult> {
-  const current = await getOwnerStatus(ownerId);
-  if ("error" in current) return { error: current.error };
-  if (current.status !== "PENDING_ONBOARDING") {
-    return { error: "Solo se pueden activar cuentas en onboarding pendiente." };
-  }
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("owners")
-    .update({ status: "ACTIVE" })
-    .eq("id", ownerId);
-  if (error) return { error: "No se pudo activar la cuenta." };
-
-  revalidatePath("/owners");
-  revalidatePath("/");
-  return { success: true };
+  return transitionOwner(ownerId, "PENDING_ONBOARDING", "ACTIVE", {
+    invalid: "Solo se pueden activar cuentas en onboarding pendiente.",
+    failed: "No se pudo activar la cuenta.",
+  });
 }
 
 export async function suspendOwnerAccount(ownerId: string): Promise<ActionResult> {
-  const current = await getOwnerStatus(ownerId);
-  if ("error" in current) return { error: current.error };
-  if (current.status !== "ACTIVE") {
-    return { error: "Solo se pueden suspender cuentas activas." };
-  }
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("owners")
-    .update({ status: "SUSPENDED" })
-    .eq("id", ownerId);
-  if (error) return { error: "No se pudo suspender la cuenta." };
-
-  revalidatePath("/owners");
-  revalidatePath("/");
-  return { success: true };
+  return transitionOwner(ownerId, "ACTIVE", "SUSPENDED", {
+    invalid: "Solo se pueden suspender cuentas activas.",
+    failed: "No se pudo suspender la cuenta.",
+  });
 }
 
 export async function reactivateOwnerAccount(ownerId: string): Promise<ActionResult> {
-  const current = await getOwnerStatus(ownerId);
-  if ("error" in current) return { error: current.error };
-  if (current.status !== "SUSPENDED") {
-    return { error: "Solo se pueden reactivar cuentas suspendidas." };
-  }
-
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("owners")
-    .update({ status: "ACTIVE" })
-    .eq("id", ownerId);
-  if (error) return { error: "No se pudo reactivar la cuenta." };
-
-  revalidatePath("/owners");
-  revalidatePath("/");
-  return { success: true };
+  return transitionOwner(ownerId, "SUSPENDED", "ACTIVE", {
+    invalid: "Solo se pueden reactivar cuentas suspendidas.",
+    failed: "No se pudo reactivar la cuenta.",
+  });
 }

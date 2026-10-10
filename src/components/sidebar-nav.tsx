@@ -11,6 +11,7 @@ import {
   Users,
   CircleUser,
   PlaneTakeoff,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,7 @@ export function SidebarNav({ counts }: { counts: QueueCounts }) {
       <NavLink href="/" label="Dashboard" icon={LayoutDashboard} exact />
       <NavLink href="/vuelos" label="Todos los vuelos" icon={PlaneTakeoff} />
       <NavLink href="/owners" label="Owners" icon={CircleUser} />
+      <NavLink href="/aeropuertos" label="Aeropuertos" icon={MapPin} />
 
       <div className="mt-4 mb-1 flex items-center gap-2.5 px-3 py-2 text-sidebar-foreground/75">
         <ClipboardList size={18} strokeWidth={1.75} className="shrink-0 text-sidebar-foreground/60" />

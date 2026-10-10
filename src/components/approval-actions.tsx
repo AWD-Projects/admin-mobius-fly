@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Check, X, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,11 +60,18 @@ export function ApprovalActions({
 
   function handleApprove() {
     startApprove(async () => {
-      await toast.promise(runAction(onApprove(id)), {
-        loading: `Aprobando ${itemLabel}…`,
-        success: `Aprobado: ${itemLabel}`,
-        error: (err) => (err instanceof Error ? err.message : "No se pudo aprobar."),
-      });
+      try {
+        await toast.promise(runAction(onApprove(id)), {
+          loading: { title: `Aprobando ${itemLabel}…` },
+          success: { title: `Aprobado: ${itemLabel}` },
+          error: (err) => ({
+            title: "No se pudo aprobar",
+            description: err instanceof Error ? err.message : undefined,
+          }),
+        });
+      } catch {
+        // toast.promise already surfaced the error.
+      }
     });
   }
 
@@ -72,9 +79,12 @@ export function ApprovalActions({
     startReject(async () => {
       try {
         await toast.promise(runAction(onReject(id, values.reason)), {
-          loading: `Rechazando ${itemLabel}…`,
-          success: `Rechazado: ${itemLabel}`,
-          error: (err) => (err instanceof Error ? err.message : "No se pudo rechazar."),
+          loading: { title: `Rechazando ${itemLabel}…` },
+          success: { title: `Rechazado: ${itemLabel}` },
+          error: (err) => ({
+            title: "No se pudo rechazar",
+            description: err instanceof Error ? err.message : undefined,
+          }),
         });
         setOpen(false);
         form.reset();

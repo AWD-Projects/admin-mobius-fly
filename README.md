@@ -1,37 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mobius Admin Dashboard
 
-## Getting Started
+Panel interno de Mobius Fly para aprobar vuelos, documentos de propietarios y
+aeronaves, tripulación, gestionar cuentas de propietarios y el catálogo de
+aeropuertos. Comparte el proyecto Supabase con la plataforma principal.
 
-First, run the development server:
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind 4 · shadcn/ui ·
+Supabase (Auth + Postgres) · React Hook Form + Zod.
+
+## Variables de entorno (`.env.local`)
+
+| Variable | Uso |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sesión del admin (login y verificación en `admin_users`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Mutaciones desde server actions. **Nunca** en el cliente. |
+
+## Desarrollo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Acceso
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Solo entran usuarios de Supabase Auth presentes en la tabla `admin_users`
+(un único rol). Las altas se hacen a mano en Supabase Studio:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sql
+insert into admin_users (user_id, email) values ('<auth.users.id>', '<correo>');
+```
 
-## Learn More
+## Estructura
 
-To learn more about Next.js, take a look at the following resources:
+- `src/proxy.ts` — protege todas las rutas (sesión + `admin_users`).
+- `src/app/(dashboard)/` — dashboard, aprobaciones, owners, vuelos, aeropuertos.
+- `src/app/actions/` — server actions con service role. Cada una llama a
+  `requireAdmin()` (`src/lib/auth.ts`) y condiciona el `UPDATE` al estado previo.
+- `src/lib/queue.ts`, `documents.ts`, `catalog.ts` — consultas y reglas compartidas.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Notas de esquema (producción)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# admin-mobius-fly
+- Vuelo aprobado = `SCHEDULED`; rechazado = `REJECTED` con `rejected_reason`.
+- Tripulante: `status` e `is_approved` se escriben juntos; la fuente de verdad es `is_approved`.
+- La aprobación de una aeronave vive en sus `aircraft_documents`, no en `aircrafts.status`.
+- `aircraft_has_all_docs_approved` exige 3 tipos: `PROOF_OF_OWNERSHIP`, `PERMITS`, `POWER_OF_ATTORNEY`.
+- Solo `flights` referencia `airports`; `aircrafts` no tiene `home_airport_id`.
